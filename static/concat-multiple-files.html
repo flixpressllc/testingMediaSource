@@ -85,11 +85,7 @@
         }
       }
 
-      let media = await Promise.all(urls.map(file => {
-        return new Promise(resolve => {
-          new MediaFile(file).whenReady(resolve);
-        })
-      }));
+      let media = await Promise.all(urls.map(file => new MediaFile(file).whenReady()))
 
       console.log(media);
 
