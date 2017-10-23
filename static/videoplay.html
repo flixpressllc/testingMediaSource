@@ -18,7 +18,7 @@
 
       // video.oncanplay = e => video.play();
 
-      const urls = ["https://mediarobotvideo.s3.amazonaws.com/template111.webm", "https://mediarobotvideo.s3.amazonaws.com/template112.webm"];
+      const urls = [ '1', '3', '4', '5' ].map(n => `https://mediarobotvideo.s3.amazonaws.com/block${n}.webm`);
 
       const request = url => fetch(url).then(response => response.arrayBuffer());
 
@@ -32,7 +32,7 @@
       */
       // const mimeCodec = "video/webm; codecs=opus";
       // https://stackoverflow.com/questions/14108536/how-do-i-append-two-video-files-data-to-a-source-buffer-using-media-source-api/
-      const mimeCodec = 'video/webm; ; codecs="vorbis,vp8"';
+      const mimeCodec = 'video/webm; codecs="vp8"';
 
 
       const media = await Promise.all(files.map(file => {
