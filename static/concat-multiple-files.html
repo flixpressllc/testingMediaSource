@@ -84,7 +84,8 @@
             this.mediaObjects = [];
             this.addMedia(media);
           }
-          return this.createMediaSource(this.mediaObjects)
+          const ms = this.createMediaSource(this.mediaObjects)
+          return URL.createObjectURL(ms)
         }
 
         addMedia(media) {
@@ -133,8 +134,7 @@
       const vc = new VideoConcatenator(media);
 
       function concatAndLoadMediaIntoPlayer(media) {
-        let ms = vc.getSource(media);
-        video.src = URL.createObjectURL(ms);
+        video.src = vc.getSource(media)
       }
 
       function reverseMedia() {
