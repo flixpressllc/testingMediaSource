@@ -60,42 +60,71 @@
 
       console.log(media);
 
-      function createMediaSource(media) {
-        const mediaSource = new MediaSource();
-        mediaSource.addEventListener("sourceopen", sourceOpen);
-
-        async function sourceOpen(event) {
-
-          if (MediaSource.isTypeSupported(mimeCodec)) {
-            const sourceBuffer = mediaSource.addSourceBuffer(mimeCodec);
-
-            for (let chunk of media) {
-              await new Promise(resolve => {
-                sourceBuffer.appendBuffer(chunk.mediaBuffer);
-                sourceBuffer.onupdateend = e => {
-                  sourceBuffer.onupdateend = null;
-                  sourceBuffer.timestampOffset += chunk.mediaDuration;
-                  console.log(mediaSource.duration);
-                  resolve()
-                }
-              })
-
-            }
-
-            mediaSource.endOfStream();
-
-          }
-          else {
-            console.warn(mimeCodec + " not supported");
-          }
-        };
-
-        return mediaSource
-
+      function forceArray(thing) {
+        if (Array.isArray(thing)) return thing
+        return [thing];
       }
 
+      class VideoConcatenator {
+        constructor (media) {
+          this.mediaObjects = [];
+          this.addMedia(media)
+        }
+
+        getSource(media) {
+          if (media) {
+            this.mediaObjects = [];
+            this.addMedia(media);
+          }
+          return this.createMediaSource(this.mediaObjects)
+        }
+
+        addMedia(media) {
+          const mediaArray = forceArray(media)
+          mediaArray.forEach(m => {
+            this.mediaObjects.push(m)
+          })
+        }
+
+        createMediaSource(media) {
+          const mediaSource = new MediaSource()
+          mediaSource.addEventListener("sourceopen", sourceOpen)
+
+          async function sourceOpen(event) {
+
+            if (MediaSource.isTypeSupported(mimeCodec)) {
+              const sourceBuffer = mediaSource.addSourceBuffer(mimeCodec)
+
+              for (let chunk of media) {
+                await new Promise(resolve => {
+                  sourceBuffer.appendBuffer(chunk.mediaBuffer)
+                  sourceBuffer.onupdateend = e => {
+                    sourceBuffer.onupdateend = null
+                    sourceBuffer.timestampOffset += chunk.mediaDuration
+                    console.log(mediaSource.duration)
+                    resolve()
+                  }
+                })
+
+              }
+
+              mediaSource.endOfStream()
+
+            }
+            else {
+              console.warn(mimeCodec + " not supported")
+            }
+          };
+
+          return mediaSource
+
+        }
+      }
+
+      const vc = new VideoConcatenator(media);
+
       function concatAndLoadMediaIntoPlayer(media) {
-        let ms = createMediaSource(media);
+        let ms = vc.getSource(media);
         video.src = URL.createObjectURL(ms);
       }
 
