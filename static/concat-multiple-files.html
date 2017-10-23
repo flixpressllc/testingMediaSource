@@ -25,29 +25,17 @@
 
       const video = document.querySelector("video");
 
-      // video.oncanplay = e => video.play();
-
       const urls = [ '1', '3', '4', '5' ].map(n => `https://mediarobotvideo.s3.amazonaws.com/block${n}.webm`);
 
-      const request = url => fetch(url).then(response => response.arrayBuffer());
-
-      // `urls.reverse()` stops at `.currentTime` : `9`
-      const files = await Promise.all(urls.map(request));
-
-      /*
-       `.webm` files
-       Uncaught DOMException: Failed to execute 'appendBuffer' on 'SourceBuffer': This SourceBuffer has been removed from the parent media source.
-       Uncaught DOMException: Failed to set the 'timestampOffset' property on 'SourceBuffer': This SourceBuffer has been removed from the parent media source.
-      */
-      // const mimeCodec = "video/webm; codecs=opus";
-      // https://stackoverflow.com/questions/14108536/how-do-i-append-two-video-files-data-to-a-source-buffer-using-media-source-api/
-      const mimeCodec = 'video/webm; codecs="vp8"';
-
+      function forceArray(thing) {
+        if (Array.isArray(thing)) return thing
+        return [thing];
+      }
 
       class MediaFile {
         constructor(url, mime, callback) {
           this._url = url
-          this._mime = mime | 'video/webm; codecs="vp8"'
+          this.mime = mime || 'video/webm; codecs="vp8"'
           this.isReady = false
           this.mediaDuration = null
           this.mediaBuffer = null
@@ -85,15 +73,6 @@
         }
       }
 
-      let media = await Promise.all(urls.map(file => new MediaFile(file).whenReady()))
-
-      console.log(media);
-
-      function forceArray(thing) {
-        if (Array.isArray(thing)) return thing
-        return [thing];
-      }
-
       class VideoConcatenator {
         constructor (media) {
           this.mediaObjects = [];
@@ -121,8 +100,8 @@
 
           async function sourceOpen(event) {
 
-            if (MediaSource.isTypeSupported(mimeCodec)) {
-              const sourceBuffer = mediaSource.addSourceBuffer(mimeCodec)
+            if (MediaSource.isTypeSupported(media[0].mime)) {
+              const sourceBuffer = mediaSource.addSourceBuffer(media[0].mime)
 
               for (let chunk of media) {
                 await new Promise(resolve => {
@@ -141,7 +120,7 @@
 
             }
             else {
-              console.warn(mimeCodec + " not supported")
+              console.warn(media[0].mime + " not supported")
             }
           };
 
@@ -150,6 +129,7 @@
         }
       }
 
+      let media = await Promise.all(urls.map(url => new MediaFile(url).whenReady()))
       const vc = new VideoConcatenator(media);
 
       function concatAndLoadMediaIntoPlayer(media) {
