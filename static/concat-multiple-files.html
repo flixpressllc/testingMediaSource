@@ -44,17 +44,50 @@
       const mimeCodec = 'video/webm; codecs="vp8"';
 
 
-      let media = await Promise.all(files.map(file => {
-        return new Promise(resolve => {
-          let media = document.createElement("video");
-          let blobURL = URL.createObjectURL(new Blob([file]));
-          media.onloadedmetadata = async e => {
-            resolve({
-              mediaDuration: media.duration,
-              mediaBuffer: file
-            })
+      class MediaFile {
+        constructor(url, mime, callback) {
+          this._url = url
+          this._mime = mime | 'video/webm; codecs="vp8"'
+          this.isReady = false
+          this.mediaDuration = null
+          this.mediaBuffer = null
+
+          this._isReadyPromise = this._getMedia()
+
+          if (callback) this.whenReady(callback)
+        }
+
+        _requestFile (url) {
+          return fetch(url).then(response => response.arrayBuffer())
+        }
+
+        whenReady (callback) {
+          if (callback) {
+            return this._isReadyPromise.then(callback)
           }
-          media.src = blobURL;
+          return this._isReadyPromise
+        }
+
+        _getMedia () {
+          return new Promise(resolve => {
+            let media = document.createElement("video")
+
+            this._requestFile(this._url).then(file => {
+              media.onloadedmetadata = (e) => {
+                this.mediaDuration = media.duration
+                this.mediaBuffer = file
+                this.isReady = true
+                resolve(this)
+              }
+              media.src = URL.createObjectURL(new Blob([file]));
+            })
+          })
+        }
+      }
+
+      let media = await Promise.all(urls.map(file => {
+        return new Promise(resolve => {
+          new MediaFile(file).whenReady(resolve);
         })
       }));
 
