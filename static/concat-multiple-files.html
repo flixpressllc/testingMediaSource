@@ -44,7 +44,7 @@
       const mimeCodec = 'video/webm; codecs="vp8"';
 
 
-      const media = await Promise.all(files.map(file => {
+      let media = await Promise.all(files.map(file => {
         return new Promise(resolve => {
           let media = document.createElement("video");
           let blobURL = URL.createObjectURL(new Blob([file]));
@@ -94,11 +94,23 @@
 
       }
 
-      let ms = createMediaSource(media);
-      video.src = URL.createObjectURL(ms);
+      function concatAndLoadMediaIntoPlayer(media) {
+        let ms = createMediaSource(media);
+        video.src = URL.createObjectURL(ms);
+      }
 
+      function reverseMedia() {
+        media = media.reverse();
+        concatAndLoadMediaIntoPlayer(media);
+      }
+
+      window.reverseMedia = reverseMedia;
+
+      concatAndLoadMediaIntoPlayer(media);
 
     })()
+
+    document.querySelector('button').onclick = () => window.reverseMedia();
   </script>
 
 
