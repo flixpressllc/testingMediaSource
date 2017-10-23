@@ -23,9 +23,6 @@
   <script>
     (async() => {
 
-
-      const mediaSource = new MediaSource();
-
       const video = document.querySelector("video");
 
       // video.oncanplay = e => video.play();
@@ -63,35 +60,43 @@
 
       console.log(media);
 
-      mediaSource.addEventListener("sourceopen", sourceOpen);
+      function createMediaSource(media) {
+        const mediaSource = new MediaSource();
+        mediaSource.addEventListener("sourceopen", sourceOpen);
 
-      video.src = URL.createObjectURL(mediaSource);
+        async function sourceOpen(event) {
 
-      async function sourceOpen(event) {
+          if (MediaSource.isTypeSupported(mimeCodec)) {
+            const sourceBuffer = mediaSource.addSourceBuffer(mimeCodec);
 
-        if (MediaSource.isTypeSupported(mimeCodec)) {
-          const sourceBuffer = mediaSource.addSourceBuffer(mimeCodec);
+            for (let chunk of media) {
+              await new Promise(resolve => {
+                sourceBuffer.appendBuffer(chunk.mediaBuffer);
+                sourceBuffer.onupdateend = e => {
+                  sourceBuffer.onupdateend = null;
+                  sourceBuffer.timestampOffset += chunk.mediaDuration;
+                  console.log(mediaSource.duration);
+                  resolve()
+                }
+              })
 
-          for (let chunk of media) {
-            await new Promise(resolve => {
-              sourceBuffer.appendBuffer(chunk.mediaBuffer);
-              sourceBuffer.onupdateend = e => {
-                sourceBuffer.onupdateend = null;
-                sourceBuffer.timestampOffset += chunk.mediaDuration;
-                console.log(mediaSource.duration);
-                resolve()
-              }
-            })
+            }
+
+            mediaSource.endOfStream();
 
           }
+          else {
+            console.warn(mimeCodec + " not supported");
+          }
+        };
 
-          mediaSource.endOfStream();
+        return mediaSource
 
-        }
-        else {
-          console.warn(mimeCodec + " not supported");
-        }
-      };
+      }
+
+      let ms = createMediaSource(media);
+      video.src = URL.createObjectURL(ms);
+
 
     })()
   </script>
