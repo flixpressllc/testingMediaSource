@@ -110,7 +110,6 @@
                   sourceBuffer.onupdateend = e => {
                     sourceBuffer.onupdateend = null
                     sourceBuffer.timestampOffset += chunk.mediaDuration
-                    console.log(mediaSource.duration)
                     resolve()
                   }
                 })
