@@ -37,8 +37,8 @@
           this._url = url
           this.mime = mime || 'video/webm; codecs="vp8"'
           this.isReady = false
-          this.mediaDuration = null
-          this.mediaBuffer = null
+          this.duration = null
+          this.buffer = null
 
           this._isReadyPromise = this._getMedia()
 
@@ -62,8 +62,8 @@
 
             this._requestFile(this._url).then(file => {
               media.onloadedmetadata = (e) => {
-                this.mediaDuration = media.duration
-                this.mediaBuffer = file
+                this.duration = media.duration
+                this.buffer = file
                 this.isReady = true
                 resolve(this)
               }
@@ -84,7 +84,7 @@
             this.mediaObjects = [];
             this.addMedia(media);
           }
-          const ms = this.createMediaSource(this.mediaObjects)
+          const ms = this._createMediaSource(this.mediaObjects)
           return URL.createObjectURL(ms)
         }
 
@@ -95,7 +95,7 @@
           })
         }
 
-        createMediaSource(media) {
+        _createMediaSource(media) {
           const mediaSource = new MediaSource()
           mediaSource.addEventListener("sourceopen", sourceOpen)
 
@@ -106,10 +106,10 @@
 
               for (let chunk of media) {
                 await new Promise(resolve => {
-                  sourceBuffer.appendBuffer(chunk.mediaBuffer)
+                  sourceBuffer.appendBuffer(chunk.buffer)
                   sourceBuffer.onupdateend = e => {
                     sourceBuffer.onupdateend = null
-                    sourceBuffer.timestampOffset += chunk.mediaDuration
+                    sourceBuffer.timestampOffset += chunk.duration
                     resolve()
                   }
                 })
