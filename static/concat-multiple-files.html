@@ -38,35 +38,42 @@
           this.mime = mime || 'video/webm; codecs="vp8"'
           this.duration = null
           this.buffer = null
-
-          this._isReadyPromise = this._setMediaDetails()
         }
 
         whenReady () {
-          return this._isReadyPromise
+          return this.getMediaDetails()
+        }
+
+        async getBuffer () {
+          return this.buffer || await this._setBuffer()
+        }
+
+        async getDuration () {
+          return this.duration || await this._setDuration()
         }
 
         async _setBuffer () {
-          this.buffer = await fetch(this.url).then(r => r.arrayBuffer())
+          return this.buffer = await fetch(this.url).then(r => r.arrayBuffer())
         }
 
-        _setDuration() {
-          if (!this.buffer) throw new Error('buffer should be set by now')
-
-          return new Promise(resolve => {
+        async _setDuration() {
+          const buffer = await this.getBuffer();
+          const p = new Promise(resolve => {
             let mediaEl = document.createElement('video')
             mediaEl.onloadedmetadata = (e) => {
-              this.duration = mediaEl.duration
-              resolve()
+              resolve(mediaEl.duration)
             }
-            mediaEl.src = URL.createObjectURL(new Blob([this.buffer]))
+            mediaEl.src = URL.createObjectURL(new Blob([buffer]))
           })
+          return this.duration = await p.then(dur => dur)
         }
 
-        async _setMediaDetails () {
-          await this._setBuffer()
-          await this._setDuration()
-          return this
+        async getMediaDetails () {
+          const buffer = await this.getBuffer()
+          const duration = await this.getDuration()
+          const {url, mime} = this
+
+          return {url, mime, buffer, duration}
         }
       }
 
@@ -124,13 +131,13 @@
             mediaSource.removeEventListener('sourceopen', sourceOpen)
 
             const sourceBuffer = mediaSource.addSourceBuffer(mime)
-            for (let chunk of mediaObjects) {
-              await chunk.whenReady()
+            for (let remoteMedia of mediaObjects) {
+              const {buffer, duration} = await remoteMedia.getMediaDetails()
               await new Promise(resolve => {
-                sourceBuffer.appendBuffer(chunk.buffer)
+                sourceBuffer.appendBuffer(buffer)
                 sourceBuffer.onupdateend = e => {
                   sourceBuffer.onupdateend = null
-                  sourceBuffer.timestampOffset += chunk.duration
+                  sourceBuffer.timestampOffset += duration
                   resolve()
                 }
               })
@@ -156,6 +163,7 @@
         concatAndLoadMediaIntoPlayer(media);
       }
 
+      window.media = media;
       window.reverseMedia = reverseMedia;
 
       concatAndLoadMediaIntoPlayer(media);
