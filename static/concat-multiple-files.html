@@ -36,7 +36,6 @@
         constructor(url, mime, callback) {
           this.url = url
           this.mime = mime || 'video/webm; codecs="vp8"'
-          this.isReady = false
           this.duration = null
           this.buffer = null
 
@@ -72,7 +71,6 @@
         async _setMediaDetails () {
           await this._setBuffer(this.url)
           await this._setDuration()
-          this.isReady = true
           return this
         }
       }
