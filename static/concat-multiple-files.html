@@ -23,7 +23,7 @@
   <script>
     (async() => {
 
-      const video = document.querySelector("video");
+      const video = document.querySelector('video');
 
       const urls = [ '1', '3', '4', '5' ].map(n => `https://mediarobotvideo.s3.amazonaws.com/block${n}.webm`);
 
@@ -42,19 +42,19 @@
           this._isReadyPromise = this._setMediaDetails()
         }
 
-        async _setBuffer (url) {
-          this.buffer = await fetch(url).then(r => r.arrayBuffer())
-        }
-
         whenReady () {
           return this._isReadyPromise
+        }
+
+        async _setBuffer (url) {
+          this.buffer = await fetch(url).then(r => r.arrayBuffer())
         }
 
         _setDuration() {
           if (!this.buffer) throw new Error('buffer should be set by now')
 
           return new Promise(resolve => {
-            let mediaEl = document.createElement("video")
+            let mediaEl = document.createElement('video')
             mediaEl.onloadedmetadata = (e) => {
               this.duration = mediaEl.duration
               resolve()
@@ -94,10 +94,10 @@
           mediaArray.forEach(m => {
             this.mediaObjects.push(m)
           })
-          this.validateMedia()
+          this._validateMedia()
         }
 
-        validateMedia() {
+        _validateMedia() {
           const {mime} = this.mediaObjects[0]
           if (this.mediaObjects.every(mo => mo.mime === mime)) return true
           throw new Error('Not all media has the same type')
@@ -105,8 +105,8 @@
 
         _createMediaSource() {
           const mediaSource = new MediaSource()
-          const { mediaObjects } = this;
-          mediaSource.addEventListener("sourceopen", sourceOpen)
+          const { mediaObjects } = this
+          mediaSource.addEventListener('sourceopen', sourceOpen)
 
           async function sourceOpen(event) {
 
@@ -114,7 +114,7 @@
               const sourceBuffer = mediaSource.addSourceBuffer(mediaObjects[0].mime)
 
               for (let chunk of mediaObjects) {
-                await chunk.whenReady();
+                await chunk.whenReady()
                 await new Promise(resolve => {
                   sourceBuffer.appendBuffer(chunk.buffer)
                   sourceBuffer.onupdateend = e => {
@@ -130,7 +130,7 @@
 
             }
             else {
-              console.warn(mediaObjects[0].mime + " not supported")
+              console.warn(mediaObjects[0].mime + ' not supported')
             }
           };
 
