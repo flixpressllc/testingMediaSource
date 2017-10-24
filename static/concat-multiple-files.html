@@ -104,11 +104,11 @@
         }
 
         _createMediaSource() {
-          const mediaSource = new MediaSource()
           const { mediaObjects } = this
-          mediaSource.addEventListener('sourceopen', sourceOpen)
+          const mediaSource = new MediaSource()
 
           async function sourceOpen(event) {
+            mediaSource.removeEventListener('sourceopen', sourceOpen)
 
             if (MediaSource.isTypeSupported(mediaObjects[0].mime)) {
               const sourceBuffer = mediaSource.addSourceBuffer(mediaObjects[0].mime)
@@ -127,13 +127,13 @@
               }
 
               mediaSource.endOfStream()
-
             }
             else {
               console.warn(mediaObjects[0].mime + ' not supported')
             }
-          };
+          }
 
+          mediaSource.addEventListener('sourceopen', sourceOpen)
           return mediaSource
 
         }
