@@ -145,10 +145,10 @@
       }
 
       let media = urls.map(url => new MediaFile(url));
-      const vc = new MediaConcatenator(media);
+      const mc = new MediaConcatenator(media);
 
       function concatAndLoadMediaIntoPlayer(media) {
-        video.src = vc.getSource(media)
+        video.src = mc.getSource(media)
       }
 
       function reverseMedia() {
