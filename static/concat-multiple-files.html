@@ -33,25 +33,20 @@
       }
 
       class MediaFile {
-        constructor(url, mime, callback) {
+        constructor(url, mime) {
           this.url = url
           this.mime = mime || 'video/webm; codecs="vp8"'
           this.duration = null
           this.buffer = null
 
           this._isReadyPromise = this._setMediaDetails()
-
-          if (callback) this.whenReady(callback)
         }
 
         async _setBuffer (url) {
           this.buffer = await fetch(url).then(r => r.arrayBuffer())
         }
 
-        whenReady (callback) {
-          if (callback) {
-            return this._isReadyPromise.then(callback)
-          }
+        whenReady () {
           return this._isReadyPromise
         }
 
