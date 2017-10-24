@@ -73,6 +73,7 @@
       class VideoConcatenator {
         constructor (media) {
           this.mediaObjects = [];
+          this.mime = media[0].mime;
           this.addMedia(media)
         }
 
@@ -94,43 +95,47 @@
           mediaArray.forEach(m => {
             this.mediaObjects.push(m)
           })
-          this._validateMedia()
+          this._validateAll()
         }
 
-        _validateMedia() {
-          const {mime} = this.mediaObjects[0]
-          if (this.mediaObjects.every(mo => mo.mime === mime)) return true
-          throw new Error('Not all media has the same type')
+        _validateAll() {
+          this._validateMediaMimesAreTheSame()
+          this._validateMimeIsSupported()
+        }
+
+        _validateMimeIsSupported () {
+          if (!MediaSource.isTypeSupported(this.mime)) {
+            throw new Error(this.mime + ' not supported')
+          }
+        }
+
+        _validateMediaMimesAreTheSame () {
+          if (this.mediaObjects.some(mo => mo.mime !== this.mime)) {
+            throw new Error('Not all mimes are the same')
+          }
         }
 
         _createMediaSource() {
-          const { mediaObjects } = this
+          const { mediaObjects, mime } = this
           const mediaSource = new MediaSource()
 
           async function sourceOpen(event) {
+
             mediaSource.removeEventListener('sourceopen', sourceOpen)
 
-            if (MediaSource.isTypeSupported(mediaObjects[0].mime)) {
-              const sourceBuffer = mediaSource.addSourceBuffer(mediaObjects[0].mime)
-
-              for (let chunk of mediaObjects) {
-                await chunk.whenReady()
-                await new Promise(resolve => {
-                  sourceBuffer.appendBuffer(chunk.buffer)
-                  sourceBuffer.onupdateend = e => {
-                    sourceBuffer.onupdateend = null
-                    sourceBuffer.timestampOffset += chunk.duration
-                    resolve()
-                  }
-                })
-
-              }
-
-              mediaSource.endOfStream()
+            const sourceBuffer = mediaSource.addSourceBuffer(mime)
+            for (let chunk of mediaObjects) {
+              await chunk.whenReady()
+              await new Promise(resolve => {
+                sourceBuffer.appendBuffer(chunk.buffer)
+                sourceBuffer.onupdateend = e => {
+                  sourceBuffer.onupdateend = null
+                  sourceBuffer.timestampOffset += chunk.duration
+                  resolve()
+                }
+              })
             }
-            else {
-              throw new Error(mediaObjects[0].mime + ' not supported')
-            }
+            mediaSource.endOfStream()
           }
 
           mediaSource.addEventListener('sourceopen', sourceOpen)
