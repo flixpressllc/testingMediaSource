@@ -110,6 +110,7 @@
               const sourceBuffer = mediaSource.addSourceBuffer(mediaObjects[0].mime)
 
               for (let chunk of mediaObjects) {
+                await chunk.whenReady();
                 await new Promise(resolve => {
                   sourceBuffer.appendBuffer(chunk.buffer)
                   sourceBuffer.onupdateend = e => {
@@ -134,7 +135,7 @@
         }
       }
 
-      let media = await Promise.all(urls.map(url => new MediaFile(url).whenReady()))
+      let media = urls.map(url => new MediaFile(url));
       const vc = new VideoConcatenator(media);
 
       function concatAndLoadMediaIntoPlayer(media) {
