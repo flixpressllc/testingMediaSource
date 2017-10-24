@@ -97,6 +97,13 @@
           mediaArray.forEach(m => {
             this.mediaObjects.push(m)
           })
+          this.validateMedia()
+        }
+
+        validateMedia() {
+          const {mime} = this.mediaObjects[0]
+          if (this.mediaObjects.every(mo => mo.mime === mime)) return true
+          throw new Error('Not all media has the same type')
         }
 
         _createMediaSource() {
