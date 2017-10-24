@@ -23,80 +23,132 @@
   <script>
     (async() => {
 
-      const video = document.querySelector("video");
-
-      // video.oncanplay = e => video.play();
+      const video = document.querySelector('video');
 
       const urls = [ '1', '3', '4', '5' ].map(n => `https://mediarobotvideo.s3.amazonaws.com/block${n}.webm`);
 
-      const request = url => fetch(url).then(response => response.arrayBuffer());
+      function forceArray(thing) {
+        if (Array.isArray(thing)) return thing
+        return [thing];
+      }
 
-      // `urls.reverse()` stops at `.currentTime` : `9`
-      const files = await Promise.all(urls.map(request));
+      class MediaFile {
+        constructor(url, mime) {
+          this.url = url
+          this.mime = mime || 'video/webm; codecs="vp8"'
+          this.duration = null
+          this.buffer = null
 
-      /*
-       `.webm` files
-       Uncaught DOMException: Failed to execute 'appendBuffer' on 'SourceBuffer': This SourceBuffer has been removed from the parent media source.
-       Uncaught DOMException: Failed to set the 'timestampOffset' property on 'SourceBuffer': This SourceBuffer has been removed from the parent media source.
-      */
-      // const mimeCodec = "video/webm; codecs=opus";
-      // https://stackoverflow.com/questions/14108536/how-do-i-append-two-video-files-data-to-a-source-buffer-using-media-source-api/
-      const mimeCodec = 'video/webm; codecs="vp8"';
+          this._isReadyPromise = this._setMediaDetails()
+        }
 
+        whenReady () {
+          return this._isReadyPromise
+        }
 
-      let media = await Promise.all(files.map(file => {
-        return new Promise(resolve => {
-          let media = document.createElement("video");
-          let blobURL = URL.createObjectURL(new Blob([file]));
-          media.onloadedmetadata = async e => {
-            resolve({
-              mediaDuration: media.duration,
-              mediaBuffer: file
-            })
+        async _setBuffer (url) {
+          this.buffer = await fetch(url).then(r => r.arrayBuffer())
+        }
+
+        _setDuration() {
+          if (!this.buffer) throw new Error('buffer should be set by now')
+
+          return new Promise(resolve => {
+            let mediaEl = document.createElement('video')
+            mediaEl.onloadedmetadata = (e) => {
+              this.duration = mediaEl.duration
+              resolve()
+            }
+            mediaEl.src = URL.createObjectURL(new Blob([this.buffer]));
+          })
+        }
+
+        async _setMediaDetails () {
+          await this._setBuffer(this.url)
+          await this._setDuration()
+          return this
+        }
+      }
+
+      class MediaConcatenator {
+        constructor (media) {
+          this.mediaObjects = [];
+          this.mime = media[0].mime;
+          this.addMedia(media)
+        }
+
+        getSource(media) {
+          if (media) {
+            this.replaceMedia(media)
           }
-          media.src = blobURL;
-        })
-      }));
+          const ms = this._createMediaSource()
+          return URL.createObjectURL(ms)
+        }
 
-      console.log(media);
+        replaceMedia(media) {
+          this.mediaObjects = [];
+          this.addMedia(media);
+        }
 
-      function createMediaSource(media) {
-        const mediaSource = new MediaSource();
-        mediaSource.addEventListener("sourceopen", sourceOpen);
+        addMedia(media) {
+          const mediaArray = forceArray(media)
+          mediaArray.forEach(m => {
+            this.mediaObjects.push(m)
+          })
+          this._validateAll()
+        }
 
-        async function sourceOpen(event) {
+        _validateAll() {
+          this._validateMediaMimesAreTheSame()
+          this._validateMimeIsSupported()
+        }
 
-          if (MediaSource.isTypeSupported(mimeCodec)) {
-            const sourceBuffer = mediaSource.addSourceBuffer(mimeCodec);
+        _validateMimeIsSupported () {
+          if (!MediaSource.isTypeSupported(this.mime)) {
+            throw new Error(this.mime + ' not supported')
+          }
+        }
 
-            for (let chunk of media) {
+        _validateMediaMimesAreTheSame () {
+          if (this.mediaObjects.some(mo => mo.mime !== this.mime)) {
+            throw new Error('Not all mimes are the same')
+          }
+        }
+
+        _createMediaSource() {
+          const { mediaObjects, mime } = this
+          const mediaSource = new MediaSource()
+
+          async function sourceOpen(event) {
+
+            mediaSource.removeEventListener('sourceopen', sourceOpen)
+
+            const sourceBuffer = mediaSource.addSourceBuffer(mime)
+            for (let chunk of mediaObjects) {
+              await chunk.whenReady()
               await new Promise(resolve => {
-                sourceBuffer.appendBuffer(chunk.mediaBuffer);
+                sourceBuffer.appendBuffer(chunk.buffer)
                 sourceBuffer.onupdateend = e => {
-                  sourceBuffer.onupdateend = null;
-                  sourceBuffer.timestampOffset += chunk.mediaDuration;
-                  console.log(mediaSource.duration);
+                  sourceBuffer.onupdateend = null
+                  sourceBuffer.timestampOffset += chunk.duration
                   resolve()
                 }
               })
-
             }
-
-            mediaSource.endOfStream();
-
+            mediaSource.endOfStream()
           }
-          else {
-            console.warn(mimeCodec + " not supported");
-          }
-        };
 
-        return mediaSource
+          mediaSource.addEventListener('sourceopen', sourceOpen)
+          return mediaSource
 
+        }
       }
 
+      let media = urls.map(url => new MediaFile(url));
+      const mc = new MediaConcatenator(media);
+
       function concatAndLoadMediaIntoPlayer(media) {
-        let ms = createMediaSource(media);
-        video.src = URL.createObjectURL(ms);
+        video.src = mc.getSource(media)
       }
 
       function reverseMedia() {
