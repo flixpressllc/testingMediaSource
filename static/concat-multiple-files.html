@@ -32,7 +32,7 @@
         return [thing];
       }
 
-      class MediaFile {
+      class RemoteMediaFile {
         constructor(url, mime) {
           this.url = url
           this.mime = mime || 'video/webm; codecs="vp8"'
@@ -144,7 +144,7 @@
         }
       }
 
-      let media = urls.map(url => new MediaFile(url));
+      let media = urls.map(url => new RemoteMediaFile(url));
       const mc = new MediaConcatenator(media);
 
       function concatAndLoadMediaIntoPlayer(media) {
