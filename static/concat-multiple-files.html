@@ -70,7 +70,7 @@
         }
       }
 
-      class VideoConcatenator {
+      class MediaConcatenator {
         constructor (media) {
           this.mediaObjects = [];
           this.mime = media[0].mime;
@@ -145,7 +145,7 @@
       }
 
       let media = urls.map(url => new MediaFile(url));
-      const vc = new VideoConcatenator(media);
+      const vc = new MediaConcatenator(media);
 
       function concatAndLoadMediaIntoPlayer(media) {
         video.src = vc.getSource(media)
