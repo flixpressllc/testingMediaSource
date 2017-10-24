@@ -81,11 +81,15 @@
 
         getSource(media) {
           if (media) {
-            this.mediaObjects = [];
-            this.addMedia(media);
+            this.replaceMedia(media)
           }
-          const ms = this._createMediaSource(this.mediaObjects)
+          const ms = this._createMediaSource()
           return URL.createObjectURL(ms)
+        }
+
+        replaceMedia(media) {
+          this.mediaObjects = [];
+          this.addMedia(media);
         }
 
         addMedia(media) {
@@ -95,16 +99,17 @@
           })
         }
 
-        _createMediaSource(media) {
+        _createMediaSource() {
           const mediaSource = new MediaSource()
+          const { mediaObjects } = this;
           mediaSource.addEventListener("sourceopen", sourceOpen)
 
           async function sourceOpen(event) {
 
-            if (MediaSource.isTypeSupported(media[0].mime)) {
-              const sourceBuffer = mediaSource.addSourceBuffer(media[0].mime)
+            if (MediaSource.isTypeSupported(mediaObjects[0].mime)) {
+              const sourceBuffer = mediaSource.addSourceBuffer(mediaObjects[0].mime)
 
-              for (let chunk of media) {
+              for (let chunk of mediaObjects) {
                 await new Promise(resolve => {
                   sourceBuffer.appendBuffer(chunk.buffer)
                   sourceBuffer.onupdateend = e => {
@@ -120,7 +125,7 @@
 
             }
             else {
-              console.warn(media[0].mime + " not supported")
+              console.warn(mediaObjects[0].mime + " not supported")
             }
           };
 
