@@ -46,8 +46,8 @@
           return this._isReadyPromise
         }
 
-        async _setBuffer (url) {
-          this.buffer = await fetch(url).then(r => r.arrayBuffer())
+        async _setBuffer () {
+          this.buffer = await fetch(this.url).then(r => r.arrayBuffer())
         }
 
         _setDuration() {
@@ -64,7 +64,7 @@
         }
 
         async _setMediaDetails () {
-          await this._setBuffer(this.url)
+          await this._setBuffer()
           await this._setDuration()
           return this
         }
