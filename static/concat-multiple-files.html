@@ -34,7 +34,7 @@
 
       class MediaFile {
         constructor(url, mime, callback) {
-          this._url = url
+          this.url = url
           this.mime = mime || 'video/webm; codecs="vp8"'
           this.isReady = false
           this.duration = null
@@ -60,7 +60,7 @@
           return new Promise(resolve => {
             let media = document.createElement("video")
 
-            this._requestFile(this._url).then(file => {
+            this._requestFile(this.url).then(file => {
               media.onloadedmetadata = (e) => {
                 this.duration = media.duration
                 this.buffer = file
