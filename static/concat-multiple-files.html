@@ -129,7 +129,7 @@
               mediaSource.endOfStream()
             }
             else {
-              console.warn(mediaObjects[0].mime + ' not supported')
+              throw new Error(mediaObjects[0].mime + ' not supported')
             }
           }
 
