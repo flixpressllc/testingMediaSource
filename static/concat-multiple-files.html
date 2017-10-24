@@ -40,13 +40,13 @@
           this.duration = null
           this.buffer = null
 
-          this._isReadyPromise = this._getMedia()
+          this._isReadyPromise = this._setMediaDetails()
 
           if (callback) this.whenReady(callback)
         }
 
-        _requestBuffer (url) {
-          return fetch(url).then(response => response.arrayBuffer())
+        async _setBuffer (url) {
+          this.buffer = await fetch(url).then(r => r.arrayBuffer())
         }
 
         whenReady (callback) {
@@ -56,20 +56,24 @@
           return this._isReadyPromise
         }
 
-        _getMedia () {
-          return new Promise(resolve => {
-            let media = document.createElement("video")
+        _setDuration() {
+          if (!this.buffer) throw new Error('buffer should be set by now')
 
-            this._requestBuffer(this.url).then(buffer => {
-              media.onloadedmetadata = (e) => {
-                this.duration = media.duration
-                this.buffer = buffer
-                this.isReady = true
-                resolve(this)
-              }
-              media.src = URL.createObjectURL(new Blob([buffer]));
-            })
+          return new Promise(resolve => {
+            let mediaEl = document.createElement("video")
+            mediaEl.onloadedmetadata = (e) => {
+              this.duration = mediaEl.duration
+              resolve()
+            }
+            mediaEl.src = URL.createObjectURL(new Blob([this.buffer]));
           })
+        }
+
+        async _setMediaDetails () {
+          await this._setBuffer(this.url)
+          await this._setDuration()
+          this.isReady = true
+          return this
         }
       }
 
